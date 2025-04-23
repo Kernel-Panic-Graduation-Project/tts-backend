@@ -1,0 +1,18 @@
+from django.db import models
+
+class AudioFile(models.Model):
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Audio {self.id} - {self.uploaded_at}"
+    
+class TextToAudioResult(models.Model):
+    input_text = models.TextField()
+    audio_file_id = models.ForeignKey(AudioFile, on_delete=models.CASCADE, related_name='text_to_audio_results')
+    generated_audio = models.FileField(upload_to='generated/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Text-to-Audio {self.id} - {self.created_at}"
+    
