@@ -3,7 +3,7 @@ from .models import AudioFile, TextToAudioResult
 
 @admin.register(AudioFile)
 class AudioFileAdmin(admin.ModelAdmin):
-    list_display = ['id', 'uploaded_at']
+    list_display = ['id', 'file', 'transcript', 'uploaded_at']
 
 @admin.register(TextToAudioResult)
 class TextToAudioResultAdmin(admin.ModelAdmin):

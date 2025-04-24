@@ -2,10 +2,11 @@ from django.db import models
 
 class AudioFile(models.Model):
     file = models.FileField(upload_to='uploads/')
+    transcript = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Audio {self.id} - {self.uploaded_at}"
+        return f"Audio {self.id} - {self.file} - {self.transcript} - {self.uploaded_at}"
     
 class TextToAudioResult(models.Model):
     input_text = models.TextField()

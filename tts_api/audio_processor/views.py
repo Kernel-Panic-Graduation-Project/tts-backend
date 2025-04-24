@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from .models import AudioFile, TextToAudioResult
 from .serializers import (AudioFileSerializer,
     TextToAudioInputSerializer, TextToAudioResultSerializer)
-from .audio_utils import generate_audio_from_text
+from .audio_utils import *
+import tempfile
 
 class AudioFileViewSet(viewsets.ViewSet):
     queryset = AudioFile.objects.all()
@@ -20,10 +21,42 @@ class AudioFileViewSet(viewsets.ViewSet):
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
         
         audio_file = request.FILES['file']
-        
-        # Save the file to the model
-        audio_file_instance = AudioFile(file=audio_file)
+
+        # Save audio as temporary file to process
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.name)[1])
+        temp_file.close()
+
+        with open(temp_file.name, 'wb') as dest:
+            for chunk in audio_file.chunks():
+                dest.write(chunk)
+
+        # Trim the audio file to 10 seconds
+        trimmed_audio_file = None
+        try:
+            trimmed_audio_file = trim_audio_file(temp_file.name, 10)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        # Check if transcript is provided
+        transcript = ""
+        if 'transcript' in request.data and request.data['transcript']:
+            transcript = request.data['transcript']
+        else:
+            # Generate transcript using Whisper
+            try:
+                transcript = transcribe_with_whisper(trimmed_audio_file)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Save the trimmed audio file to the model
+        audio_file_instance = AudioFile()
+        audio_file_instance.file.save(os.path.basename(trimmed_audio_file), open(trimmed_audio_file, 'rb'))
+        audio_file_instance.transcript = transcript
         audio_file_instance.save()
+
+        # Delete the temporary files
+        os.unlink(temp_file.name)
+        os.unlink(trimmed_audio_file)
         
         # Return the serialized data of the saved instance
         serializer = AudioFileSerializer(audio_file_instance)
@@ -54,8 +87,9 @@ class TextToAudioViewSet(viewsets.ViewSet):
         try:
             # Generate audio from text
             #TODO: Add support for F5-TTS
-            generated_file_path = generate_audio_from_text(
+            generated_file_path = generate_speech_using_f5_tts(
                 input_text,
+                audio_file,
             )
             
             # Create result object
