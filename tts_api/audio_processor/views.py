@@ -20,7 +20,11 @@ class AudioFileViewSet(viewsets.ViewSet):
         if 'file' not in request.FILES:
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
         
+        if 'name' not in request.data:
+            return Response({"error": "No name provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
         audio_file = request.FILES['file']
+        name = request.data['name'].strip()
 
         # Save audio as temporary file to process
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.name)[1])
@@ -50,6 +54,7 @@ class AudioFileViewSet(viewsets.ViewSet):
 
         # Save the trimmed audio file to the model
         audio_file_instance = AudioFile()
+        audio_file_instance.name = name
         audio_file_instance.file.save(os.path.basename(trimmed_audio_file), open(trimmed_audio_file, 'rb'))
         audio_file_instance.transcript = transcript
         audio_file_instance.save()
