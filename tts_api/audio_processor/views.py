@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import FileResponse
 from .models import AudioFile, TextToAudioResult
 from .serializers import (AudioFileSerializer,
     TextToAudioInputSerializer, TextToAudioResultSerializer)
@@ -89,6 +90,8 @@ class AudioFileViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class TextToAudioViewSet(viewsets.ViewSet):
+    queryset = TextToAudioResult.objects.all()
+
     @action(detail=False, methods=['post'])
     def generate(self, request):
         # Validate input
@@ -112,10 +115,9 @@ class TextToAudioViewSet(viewsets.ViewSet):
         
         try:
             # Generate audio from text
-            #TODO: Add support for F5-TTS
-            generated_file_path = generate_speech_using_f5_tts(
+            generated_file_path = generate_speech_using_gtts(
                 input_text,
-                audio_file,
+                #audio_file,
             )
             
             # Create result object
@@ -132,13 +134,17 @@ class TextToAudioViewSet(viewsets.ViewSet):
             
             # Save result
             result.save()
-            
-            # Delete temporary file
+
             os.unlink(generated_file_path)
-            
-            # Return result
-            result_serializer = TextToAudioResultSerializer(result)
-            return Response(result_serializer.data, status=status.HTTP_200_OK)
-            
+
+            # Serve the generated audio file
+            file_path = result.generated_audio.path
+            if os.path.exists(file_path):
+                response = FileResponse(open(file_path, 'rb'))
+                response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+                return response
+            else:
+                return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
