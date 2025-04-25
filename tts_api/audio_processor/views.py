@@ -16,8 +16,10 @@ class AudioFileViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'])
     def upload(self, request):
+        print("Received request to upload audio file")
         # Validate file upload
         if 'file' not in request.FILES:
+            print("No file provided in request")
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
         
         if 'name' not in request.data:
@@ -26,8 +28,12 @@ class AudioFileViewSet(viewsets.ViewSet):
         if 'user_id' not in request.data:
             return Response({"error": "No user ID provided"}, status=status.HTTP_400_BAD_REQUEST)
         
+        print("Validating file upload")
+        
         audio_file = request.FILES['file']
         name = request.data['name'].strip()
+
+        print(f"Audio file name: {name}")
 
         # Save audio as temporary file to process
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.name)[1])
