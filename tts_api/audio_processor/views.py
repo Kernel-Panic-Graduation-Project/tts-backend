@@ -115,9 +115,9 @@ class TextToAudioViewSet(viewsets.ViewSet):
         
         try:
             # Generate audio from text
-            generated_file_path = generate_speech_using_gtts(
+            generated_file_path = generate_speech_using_f5_tts(
                 input_text,
-                #audio_file,
+                audio_file,
             )
             
             # Create result object
