@@ -88,6 +88,25 @@ class AudioFileViewSet(viewsets.ViewSet):
         audio_files = AudioFile.objects.filter(user_id=user_id)
         serializer = AudioFileSerializer(audio_files, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'])
+    def download(self, request):
+        audio_file_id = request.META['HTTP_AUDIO_FILE_ID']
+        print(f"Audio file ID: {audio_file_id}")
+        # Get the audio file instance
+        try:
+            audio_file = AudioFile.objects.get(id=audio_file_id)
+        except AudioFile.DoesNotExist:
+            return Response({"error": "Audio file not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serve the audio file
+        file_path = audio_file.file.path
+        if os.path.exists(file_path):
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+            return response
+        else:
+            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class TextToAudioViewSet(viewsets.ViewSet):
     queryset = TextToAudioResult.objects.all()
