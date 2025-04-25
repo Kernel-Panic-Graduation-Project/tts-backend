@@ -4,7 +4,7 @@ from .models import AudioFile, TextToAudioResult
 class AudioFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = AudioFile
-        fields = ['id', 'name', 'file', 'transcript', 'uploaded_at']
+        fields = ['id', 'user_id', 'name', 'file', 'transcript', 'uploaded_at', 'duration']
 
 class TextToAudioInputSerializer(serializers.Serializer):
     input_text = serializers.CharField(required=True)

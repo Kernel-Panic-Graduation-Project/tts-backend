@@ -91,6 +91,8 @@ def trim_audio_file(input_audio_file, length):
     # Trim the audio file
     trimmed_audio = audio[:length * 1000]  # Convert seconds to milliseconds
 
+    final_duration = len(trimmed_audio) / 1000  # Convert milliseconds to seconds
+
     # Create a temporary file to save the trimmed audio
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
     temp_file.close()
@@ -98,4 +100,4 @@ def trim_audio_file(input_audio_file, length):
     # Export the trimmed audio to the temporary file
     trimmed_audio.export(temp_file.name, format="wav")
 
-    return temp_file.name
+    return temp_file.name, final_duration

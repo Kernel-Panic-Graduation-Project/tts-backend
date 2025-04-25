@@ -23,6 +23,9 @@ class AudioFileViewSet(viewsets.ViewSet):
         if 'name' not in request.data:
             return Response({"error": "No name provided"}, status=status.HTTP_400_BAD_REQUEST)
         
+        if 'user_id' not in request.data:
+            return Response({"error": "No user ID provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
         audio_file = request.FILES['file']
         name = request.data['name'].strip()
 
@@ -36,8 +39,9 @@ class AudioFileViewSet(viewsets.ViewSet):
 
         # Trim the audio file to 10 seconds
         trimmed_audio_file = None
+        duration_after_trim = 0
         try:
-            trimmed_audio_file = trim_audio_file(temp_file.name, 10)
+            (trimmed_audio_file, duration_after_trim) = trim_audio_file(temp_file.name, 10)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
@@ -57,6 +61,8 @@ class AudioFileViewSet(viewsets.ViewSet):
         audio_file_instance.name = name
         audio_file_instance.file.save(os.path.basename(trimmed_audio_file), open(trimmed_audio_file, 'rb'))
         audio_file_instance.transcript = transcript
+        audio_file_instance.user_id = request.data['user_id']
+        audio_file_instance.duration = duration_after_trim
         audio_file_instance.save()
 
         # Delete the temporary files
@@ -66,6 +72,15 @@ class AudioFileViewSet(viewsets.ViewSet):
         # Return the serialized data of the saved instance
         serializer = AudioFileSerializer(audio_file_instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'])
+    def getlist(self, request):
+        user_id = request.META['HTTP_USER_ID']
+        print(f"User ID: {user_id}")
+        # Get the list of audio files for the user
+        audio_files = AudioFile.objects.filter(user_id=user_id)
+        serializer = AudioFileSerializer(audio_files, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class TextToAudioViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
