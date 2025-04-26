@@ -10,6 +10,7 @@ from .serializers import (AudioFileSerializer,
     TextToAudioInputSerializer, TextToAudioResultSerializer)
 from .audio_utils import *
 import tempfile
+import noisereduce as nr
 
 class AudioFileViewSet(viewsets.ViewSet):
     queryset = AudioFile.objects.all()
@@ -51,7 +52,16 @@ class AudioFileViewSet(viewsets.ViewSet):
             (trimmed_audio_file, duration_after_trim) = trim_audio_file(temp_file.name, 10)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+
+        # Load audio file
+        y, sr = librosa.load(trimmed_audio_file, sr=None)
+
+        # Perform noise reduction
+        reduced_noise = nr.reduce_noise(y=y, sr=sr, prop_decrease=0.5)
+
+        # Save the cleaned audio
+        sf.write(trimmed_audio_file, reduced_noise, sr)
+        
         # Check if transcript is provided
         transcript = ""
         if 'transcript' in request.data and request.data['transcript']:
